@@ -121,3 +121,180 @@ RowVectorXd b {{1.0, 2.0, 3.0, 4.0}};     // A row-vector with 4 coefficients
 
 # 访问系数
 
+在Eigen中主要的系数访问方法是重载括号运算符。对于矩阵，行索引总是优先传递的。对于向量，只需要传递一个索引。索引从0开始。下面例子很清楚的解释了这一点。
+
+```C++
+#include <iostream>
+#include <Eigen/Dense>
+ 
+int main()
+{
+  Eigen::MatrixXd m(2,2);
+  m(0,0) = 3;
+  m(1,0) = 2.5;
+  m(0,1) = -1;
+  m(1,1) = m(1,0) + m(0,1);
+  std::cout << "Here is the matrix m:\n" << m << std::endl;
+  Eigen::VectorXd v(2);
+  v(0) = 4;
+  v(1) = v(0) - 1;
+  std::cout << "Here is the vector v:\n" << v << std::endl;
+}
+
+Here is the matrix m:
+  3  -1
+2.5 1.5
+Here is the vector v:
+4
+3
+```
+
+请注意m(index)不只是只能用在向量，对普通的矩阵同样可以使用，在系数行列式中点访问是基于索引的。但是，索引取决于矩阵的存储顺序。在Eigen中，矩阵默认是列优先进行存储，但是这也可以改变，详情请查阅 [Storage orders](http://eigen.tuxfamily.org/dox/group__TopicStorageOrders.html)。
+
+运算符**[ ]**同样也被重载用于基于索引的向量访问，但是请记住，C++只允许远算符**[ ]**最多传入1个参数。我们限制了运算符**[ ]**只能在vector上的使用，因为C++语言的笨拙，会把matrix[i,j]编译成matrix[j]。
+
+# 逗号初始化
+
+矩阵和向量系数可以使用逗号进行初始化。如下：
+
+```C++
+Matrix3f m;
+m << 1, 2, 3,
+     4, 5, 6,
+     7, 8, 9;
+std::cout << m;
+
+Output:
+1 2 3
+4 5 6
+7 8 9
+```
+
+# 重置大小
+
+矩阵当前的大小可以通过函数rows(),cols(),size()来返回。这些方法分别返回函数、列数、系数的数量。对于动态大小的矩阵，可以使用函数resize()来重新调整大小。
+
+```C++
+#include <iostream>
+#include <Eigen/Dense>
+ 
+int main()
+{
+  Eigen::MatrixXd m(2,5);
+  m.resize(4,3);
+  std::cout << "The matrix m is of size "
+            << m.rows() << "x" << m.cols() << std::endl;
+  std::cout << "It has " << m.size() << " coefficients" << std::endl;
+  Eigen::VectorXd v(2);
+  v.resize(5);
+  std::cout << "The vector v is of size " << v.size() << std::endl;
+  std::cout << "As a matrix, v is of size "
+            << v.rows() << "x" << v.cols() << std::endl;
+}
+
+Output:
+The matrix m is of size 4x3
+It has 12 coefficients
+The vector v is of size 5
+As a matrix, v is of size 5x1
+```
+
+如果矩阵的大小没有改变，那么resize()方法不做任何操作。否则，该返回会破坏当前的矩阵，矩阵的系数可能会改变。如果你不想改变矩阵的系数，可以使用resize()的变体[conservativeResize()](http://eigen.tuxfamily.org/dox/classEigen_1_1PlainObjectBase.html#a712c25be1652e5a64a00f28c8ed11462)。
+
+所有的这些方法都可以对固定大小的矩阵使用。当然，你不能对一个固定大小的矩阵使用resize。试图对一个固定大小的矩阵进行改变大小会触发断言。但是下列的代码是合法的。
+
+```C++
+#include <iostream>
+#include <Eigen/Dense>
+ 
+int main()
+{
+  Eigen::Matrix4d m;
+  m.resize(4,4); // no operation
+  std::cout << "The matrix m is of size "
+            << m.rows() << "x" << m.cols() << std::endl;
+}
+Output:
+The matrix m is of size 4x4
+```
+
+# 赋值和重置大小
+
+赋值是使用操作符=来完成复制的操作。Eigen将会自动调整等式左边的大小以便与和等式右边的大小做一个匹配，例如：
+
+```C++
+MatrixXf a(2,2);
+std::cout << "a is of size " << a.rows() << "x" << a.cols() << std::endl;
+MatrixXf b(3,3);
+a = b;
+std::cout << "a is now of size " << a.rows() << "x" << a.cols() << std::endl;
+Output:
+a is of size 2x2
+a is now of size 3x3
+```
+
+当然如果，等式左边的大小是固定大小，重置大小是不被允许的。
+
+如果你不想自动重置大小的操作发生，你可以关闭它，详情请参考[this page](http://eigen.tuxfamily.org/dox/TopicResizing.html)。
+
+# 固定和动态大小的比较
+
+如何选择使用固定大小还是动态大小呢？对于非常小的矩阵应该选择固定大小，当面对大矩阵的时候应该使用动态大小。对于小的大小，特别是对于大小小于16时，使用固定大小效率更高，因为它允许Eigen避免动态分配内存和展开循环。一个固定大小Eigen矩阵仅仅是一个纯数组。例如，`Matrix4f mymatrix`等同于`float mymatrix[16]`，所以这没有没有运行的成本。而动态矩阵需要在堆中分配空间，例如：`MatrixXf mymatrix(rows,columns)`等价于`float *mymatrix = new float[rows*columns]`，除此之外，MatrixXf对象还存储了其行数和列数。
+
+使用固定大小的限制就是在要求你在编译的时候就知道大小，而且对于大的矩阵，例如大于32的矩阵，使用固定大小的矩阵带来的优势可以忽略不计。更糟糕的是，试图使用固定大小的矩阵创建一个非常大的矩阵可能会导致栈溢出，因为Eigen使用分配一个很大的栈空间来存储这个局部变量。最后，看情况，如果使用动态大小，Eigen可以更加积极的去向量化操作，具体请查看 [Vectorization](http://eigen.tuxfamily.org/dox/TopicVectorization.html)。
+
+# 可选择的其他模板参数
+
+在开始的时候，我们提及Matrix类有6个模板参数，但是，目前我们只讨论了前三个，剩下的三个参数是可供选择的。下面是完整的模板参数：
+
+```C++
+Matrix<typename Scalar,
+       int RowsAtCompileTime,
+       int ColsAtCompileTime,
+       int Options = 0,
+       int MaxRowsAtCompileTime = RowsAtCompileTime,
+       int MaxColsAtCompileTime = ColsAtCompileTime>
+```
+
+- Options 是一个位域。这里，我们只讨论一个位RowMajor。它指定了矩阵是按照行优先进行存储的。默认情况下，存储顺序是按照列存储的。例如```Matrix<float, 3, 3, RowMajor>```是指一个行优先3*3矩阵。
+- MaxRowsAtCompileTime 和 MaxColsAtCompileTime 是矩阵大小的上界，这让在编译前不知道矩阵的具体大小，就可以分配最大多少的内存，例如，```Matrix<float, Dynamic, Dynamic, 0, 3, 4>``` 会在编译的时候就使用一个大小为12个float的纯数组，而不需要动态分配内存。
+
+# 常用的类型
+
+- MatrixNt **<=>** Matrix<type, N, N>. **例如** Matrix<int, Dynamic, Dynamic>.
+- MatrixXNt  **<=>** Matrix<type, Dynamic, N>.**例如**Matrix<int, Dynamic, 3>.
+- MatrixNXt **<=>** Matrix<type, N, Dynamic>. **例如** Matrix<d, 4, Dynamic>.
+- VectorNt  **<=>** Matrix<type, N, 1>. **例如** Vector2f for Matrix<float, 2, 1>.
+- RowVectorNt  **<=>** Matrix<type, 1, N>.  **例如** Matrix<double, 1, 3>.
+
+上述：
+
+- **N**代表2、3、4或者X
+- **t**代表任何一个i(int)、f(float)、d(double)、cf(complex<float>)、cd(complex<double>)。事实上，typedefs只定义了5种类型，但是这并不意味着，他们仅仅支持标量。例如，标准整形是支持的。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
