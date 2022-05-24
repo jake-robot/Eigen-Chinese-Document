@@ -115,7 +115,86 @@ for(int i = 0; i < 50; ++i)
 
 因此，你不要害怕使用相对较大的运算表达式，这只会给Eigen更多机会进行优化。
 
-# Transposition and conjugation
+# 转置和共轭
+
+a的转置、共轭和伴随（如共轭转置）是可以通过函数transpose(), conjugate(),adjoint()分别得到。
+
+例如：
+
+```c++
+MatrixXcf a = MatrixXcf::Random(2,2);
+cout << "Here is the matrix a\n" << a << endl;
+ 
+cout << "Here is the matrix a^T\n" << a.transpose() << endl;
+ 
+ 
+cout << "Here is the conjugate of a\n" << a.conjugate() << endl;
+ 
+ 
+cout << "Here is the matrix a^*\n" << a.adjoint() << endl;
+
+OUTPUT:
+Here is the matrix a
+ (-0.211,0.68) (-0.605,0.823)
+ (0.597,0.566)  (0.536,-0.33)
+Here is the matrix a^T
+ (-0.211,0.68)  (0.597,0.566)
+(-0.605,0.823)  (0.536,-0.33)
+Here is the conjugate of a
+ (-0.211,-0.68) (-0.605,-0.823)
+ (0.597,-0.566)    (0.536,0.33)
+Here is the matrix a^*
+ (-0.211,-0.68)  (0.597,-0.566)
+(-0.605,-0.823)    (0.536,0.33)
+```
+
+对于一个实数矩阵，共轭conjugate()函数没有任何操作，共轭转置adjoint()函数相当于transpose()函数。
+
+作为基本的操作符，transpose和adjoint函数仅仅返回一个代理对象而没有做任何操作。如果你执行`b = a.transpose()`，真正的转置计算是在写入b的时候发生的。但是，这有一个复杂的问题，如果你执行`a = a.transpose()`，Eigen在转置计算完全完成之前就开始写入a，因此，所以指令`a = a.transpose()`不会改变a的任何元素。
+
+```c++
+Matrix2i a; a << 1, 2, 3, 4;
+cout << "Here is the matrix a:\n" << a << endl;
+ 
+a = a.transpose(); // !!! do NOT do this !!!
+cout << "and the result of the aliasing effect:\n" << a << endl;
+
+OUTPUT:
+Here is the matrix a:
+1 2
+3 4
+and the result of the aliasing effect:
+1 2
+2 4
+```
+
+上述的问题就是所谓的混淆问题，在debug模式下，当assertion打开，这个问题可以自动检测到。
+
+解决上述问题的方式可以使用transposeInPlace()函数：
+
+```c++
+MatrixXf a(2,3); a << 1, 2, 3, 4, 5, 6;
+cout << "Here is the initial matrix a:\n" << a << endl;
+ 
+ 
+a.transposeInPlace();
+cout << "and after being transposed:\n" << a << endl;
+
+Output:
+Here is the initial matrix a:
+1 2 3
+4 5 6
+and after being transposed:
+1 4
+2 5
+3 6
+```
+
+同样，对于复数的共轭也有adjointInPlace()函数。
+
+# Matrix-matrix and matrix-vector multiplication
+
+
 
 
 
