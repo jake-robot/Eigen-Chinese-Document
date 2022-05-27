@@ -192,9 +192,148 @@ and after being transposed:
 
 同样，对于复数的共轭也有adjointInPlace()函数。
 
-# Matrix-matrix and matrix-vector multiplication
+# 矩阵之间和矩阵向量之间的乘法
+
+矩阵和矩阵间的乘法是通过运算符`*`来完成的。由于向量是特殊的矩阵，所以向量和矩阵的乘法是一样的。所有的情况都会被处理成两类
+
+- 二位操作运算`*` ，如a`*`b
+- 混合运算符 `*=` ，如`a*=b` 即a = a`*` b
+
+```c++
+#include <iostream>
+#include <Eigen/Dense>
+ 
+int main()
+{
+  Eigen::Matrix2d mat;
+  mat << 1, 2,
+         3, 4;
+  Eigen::Vector2d u(-1,1), v(2,0);
+  std::cout << "Here is mat*mat:\n" << mat*mat << std::endl;
+  std::cout << "Here is mat*u:\n" << mat*u << std::endl;
+  std::cout << "Here is u^T*mat:\n" << u.transpose()*mat << std::endl;
+  std::cout << "Here is u^T*v:\n" << u.transpose()*v << std::endl;
+  std::cout << "Here is u*v^T:\n" << u*v.transpose() << std::endl;
+  std::cout << "Let's multiply mat by itself" << std::endl;
+  mat = mat*mat;
+  std::cout << "Now mat is mat:\n" << mat << std::endl;
+}
+
+Output:
+Here is mat*mat:
+ 7 10
+15 22
+Here is mat*u:
+1
+1
+Here is u^T*mat:
+2 2
+Here is u^T*v:
+-2
+Here is u*v^T:
+-2 -0
+ 2  0
+Let's multiply mat by itself
+Now mat is mat:
+ 7 10
+15 22
+```
+
+注意：如果你阅读过上面的关于表达式模板的段落，有可能会担心m = m`* `m会引发混淆，先在你应该放心，Eigen把矩阵乘法作为一个特殊的例子，并且在此引入了一个临时变量，所以它会编译为：
+
+```c++
+tmp = m*m;
+m = tmp;
+```
+
+如果你知道你的矩阵乘积可以安全的计算并且没有混淆问题，那么你可以使用noalias()函数来避免编译临时变量，例如：
+
+```C++
+c.noalias() += a * b;
+```
+
+更多细节请点击[aliasing](http://eigen.tuxfamily.org/dox/group__TopicAliasing.html)
+
+注意：对于BLAS用户但是性能的问题，表达式如：`c.noalias() -= 2 * a.adjoint() * b;`可以完全的优化并触发一个类似矩阵乘法的函数。
+
+# 基本的算法简化运算
+
+Eigen也提供了一些简化的把一个给定矩阵和向量变成标量的运算，如求和、求积、最大元素、最小元素。
+
+```c++
+#include <iostream>
+#include <Eigen/Dense>
+ 
+using namespace std;
+int main()
+{
+  Eigen::Matrix2d mat;
+  mat << 1, 2,
+         3, 4;
+  cout << "Here is mat.sum():       " << mat.sum()       << endl;
+  cout << "Here is mat.prod():      " << mat.prod()      << endl;
+  cout << "Here is mat.mean():      " << mat.mean()      << endl;
+  cout << "Here is mat.minCoeff():  " << mat.minCoeff()  << endl;
+  cout << "Here is mat.maxCoeff():  " << mat.maxCoeff()  << endl;
+  cout << "Here is mat.trace():     " << mat.trace()     << endl;
+}
+Output:
+	
+Here is mat.sum():       10
+Here is mat.prod():      24
+Here is mat.mean():      2.5
+Here is mat.minCoeff():  1
+Here is mat.maxCoeff():  4
+Here is mat.trace():     5
+```
+
+矩阵的迹运算可以使用`trace()`或者 `a.diagonal().sum()`
+
+同时存在`minCoeff` 和 `maxCoeff` 的变体，同时可以返回对应元素的坐标，如下所示：
+
+```c++
+  Matrix3f m = Matrix3f::Random();
+  std::ptrdiff_t i, j;
+  float minOfM = m.minCoeff(&i,&j);
+  cout << "Here is the matrix m:\n" << m << endl;
+  cout << "Its minimum coefficient (" << minOfM 
+       << ") is at position (" << i << "," << j << ")\n\n";
+ 
+  RowVector4i v = RowVector4i::Random();
+  int maxOfV = v.maxCoeff(&i);
+  cout << "Here is the vector v: " << v << endl;
+  cout << "Its maximum coefficient (" << maxOfV 
+       << ") is at position " << i << endl;
+Output:
+Here is the matrix m:
+  0.68  0.597  -0.33
+-0.211  0.823  0.536
+ 0.566 -0.605 -0.444
+Its minimum coefficient (-0.605) is at position (2,1)
+
+Here is the vector v:  1  0  3 -3
+Its maximum coefficient (3) is at position 2
+```
 
 
+
+# 操作的有效性
+
+Eigen会检查你操作的有效性，如果有错误，它会在编译的时候产生提示。错误提示可能非常长而且难看，但是Eigen会把重要的信息写成大写，以使其更加显眼，如：
+
+```c++
+Matrix3f m;
+Vector4f v;
+v = m*v;      // Compile-time error: YOU_MIXED_MATRICES_OF_DIFFERENT_SIZES
+```
+
+当然，在很多情况下，如检查动态矩阵的大小，这是不能在编译的时候就知道的，Eigen会使用运行时的断言来判断。如果在debug模式下运行，遇到非法操作会终止运行并且会打印出错误消息。如果断言关闭了，程序可能会跑飞。
+
+```c++
+MatrixXf m(3,3);
+VectorXf v(4);
+v = m * v; // Run-time assertion failure here: "invalid matrix product"
+```
 
 
 
