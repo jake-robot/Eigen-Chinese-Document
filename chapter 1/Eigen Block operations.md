@@ -1,0 +1,1 @@
+[Eigen: Block operations](http://eigen.tuxfamily.org/dox/group__TutorialBlockOperations.html)
