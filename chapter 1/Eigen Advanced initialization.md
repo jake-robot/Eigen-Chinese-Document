@@ -1,0 +1,1 @@
+[Eigen: Advanced initialization](http://eigen.tuxfamily.org/dox/group__TutorialAdvancedInitialization.html)
