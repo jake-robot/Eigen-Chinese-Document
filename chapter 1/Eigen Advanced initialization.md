@@ -104,3 +104,27 @@ A two-dimensional dynamic-size array:
 0 0 0 0
 ```
 
+类似的，静态方法`Constant(value)`把所有系数都设置为value。如果对象的大小需要指定，除了value参数还需要额外的参数，如 `MatrixXd::Constant(rows, cols, value)`。方法`Random()`用随机的数字填充矩阵或阵列。使用`Identity()`获取单位矩阵，这只能用于matrix而不能用于vector，因为单位矩阵的概念是线性代数中的。方法`LinSpaced(size,low,high)`只对向量和一维阵列有效，它产生一个指定大小的向量，在low和high的等差数列。下面的例子解释`LinSpaced()`，其打印一个表格，表格中是角度和弧度的对应值，还有他们的sin和cos值。
+
+```c++
+ArrayXXf table(10, 4);
+table.col(0) = ArrayXf::LinSpaced(10, 0, 90);
+table.col(1) = M_PI / 180 * table.col(0);
+table.col(2) = table.col(1).sin();
+table.col(3) = table.col(1).cos();
+std::cout << "  Degrees   Radians      Sine    Cosine\n";
+std::cout << table << std::endl;
+Output:
+Degrees   Radians      Sine    Cosine
+        0         0         0         1
+       10     0.175     0.174     0.985
+       20     0.349     0.342      0.94
+       30     0.524       0.5     0.866
+       40     0.698     0.643     0.766
+       50     0.873     0.766     0.643
+       60      1.05     0.866       0.5
+       70      1.22      0.94     0.342
+       80       1.4     0.985     0.174
+       90      1.57         1 -4.37e-08
+```
+
