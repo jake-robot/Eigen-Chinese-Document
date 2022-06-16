@@ -128,3 +128,56 @@ Degrees   Radians      Sine    Cosine
        90      1.57         1 -4.37e-08
 ```
 
+# 用作临时对象
+
+如上所示，静态方法`Zero()`和`Constant()` 可以在声明时进行初始化或者在赋值操作符右侧进行初始化。你可以认为这些方法返回一个矩阵或者阵列，实际上，它们返回所谓的表达式对象，该对象当在需要的时候才被计算，所以这样的语法不会带来任何开销。
+
+这些表达式也可以用作临时对象。如下为[Getting started](http://eigen.tuxfamily.org/dox/GettingStarted.html)的第二个例子，其说明了这个特性：
+
+```c++
+#include <iostream>
+#include <Eigen/Dense>
+ 
+using Eigen::MatrixXd;
+using Eigen::VectorXd;
+ 
+int main()
+{
+  MatrixXd m = MatrixXd::Random(3,3);
+  m = (m + MatrixXd::Constant(3,3,1.2)) * 50;
+  std::cout << "m =" << std::endl << m << std::endl;
+  VectorXd v(3);
+  v << 1, 2, 3;
+  std::cout << "m * v =" << std::endl << m * v << std::endl;
+}
+
+Output:
+	
+m =
+  94 89.8 43.5
+49.4  101 86.8
+88.3 29.8 37.8
+m * v =
+404
+512
+261
+```
+
+表达式 `m + MatrixXf::Constant(3,3,1.2)` 构造了一个3*3元素全为1.2的矩阵然后与对应的m元素相加。
+
+逗号初始化也可以构造临时对象，下面的例子构造了一个2*3的随机矩阵，然后与矩阵[0,1;1,0]相乘。
+
+```c++
+MatrixXf mat = MatrixXf::Random(2, 3);
+std::cout << mat << std::endl << std::endl;
+mat = (MatrixXf(2,2) << 0, 1, 1, 0).finished() * mat;
+std::cout << mat << std::endl;
+Output:
+ 0.68  0.566  0.823
+-0.211  0.597 -0.605
+
+-0.211  0.597 -0.605
+  0.68  0.566  0.823
+```
+
+在完成临时子矩阵的逗号初始化之后，这里需要使用finished()方法来获得实际的矩阵对象。
