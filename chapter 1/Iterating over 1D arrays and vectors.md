@@ -1,0 +1,1 @@
+[Eigen: STL iterators and algorithms](http://eigen.tuxfamily.org/dox/group__TutorialSTL.html)
